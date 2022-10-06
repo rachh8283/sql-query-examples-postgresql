@@ -1,0 +1,290 @@
+/* DVD Rental Database Queries in SQL using PostgreSQL */
+
+--
+
+SELECT first_name, last_name
+FROM actor
+WHERE first_name = 'Penelope'
+
+SELECT first_name, last_name
+FROM actor
+WHERE actor_id <5
+
+SELECT actor_id, first_name, last_name
+FROM actor
+WHERE actor_id >3 AND actor_id <=5
+
+SELECT actor_id, first_name, last_name
+FROM actor
+WHERE actor_id BETWEEN 3 AND 5
+
+SELECT actor_id, first_name, last_name
+FROM actor
+WHERE first_name = 'Penelope'
+OR actor_id <5
+OR first_name = 'Nick'
+
+--
+
+/* Filtering Using Like, IN (matches any of the following), and Wildcards*/
+SELECT *
+FROM actor
+WHERE first_name IN ('Penelope', 'Nick', 'Ed')
+
+SELECT *
+FROM actor
+WHERE first_name NOT IN ('Penelope', 'Nick', 'Ed')
+
+SELECT *
+FROM actor
+WHERE first_name LIKE 'John%'
+
+SELECT *
+FROM actor
+WHERE first_name LIKE 'Ja_ne'
+
+SELECT * 
+FROM address
+WHERE district = 'Buenos Aires'
+AND (address like '%El%' OR address like '%Al%')
+
+--
+
+SELECT actor_id, first_name, last_name
+FROM actor
+WHERE first_name = 'Penelope'
+ORDER BY last_name ASC
+
+--
+/* String functions - formula on text*/
+SELECT first_name, LENGTH (first_name)
+FROM actor
+
+SELECT CONCAT(first_name, ' ', last_name)
+FROM actor
+OR
+SELECT first_name || ' ' || last_name
+FROM actor
+
+SELECT CONCAT(first_name, ' ', last_name), LENGTH(CONCAT(first_name, ' ', last_name))
+FROM actor
+
+SELECT CONCAT(first_name, ' ', last_name), LENGTH(CONCAT(first_name, ' ', last_name))
+FROM actor
+ORDER BY LENGTH(CONCAT(first_name, ' ', last_name)) DESC
+
+SELECT INITCAP(first_name)
+FROM actor
+
+SELECT LEFT(first_name, 1)
+FROM actor
+
+SELECT CONCAT(LEFT(first_name, 1), LOWER(RIGHT(first_name, LENGTH(first_name)-1)))
+FROM actor
+
+SELECT SUBSTRING(first_name, 1, 1)
+FROM actor
+
+/* with fewer arguments, start position 2 and take rest of word */
+SELECT SUBSTRING(first_name, 2)
+FROM actor
+
+SELECT CONCAT(SUBSTRING(first_name, 1,1), LOWER(SUBSTRING(first_name,2)))
+FROM actor
+
+/* USE Trim and Locate */
+SELECT *
+FROM actor
+WHERE TRIM(first_name) = 'Grace'
+
+SELECT description as original, TRIM(LEADING 'A ' from description) as modified
+FROM film
+
+SELECT POSITION('lope' in first_name) 
+FROM actor
+
+--
+/* Change report headings with alias*/
+
+SELECT CONCAT(first_name, ' ', last_name),
+LENGTH(CONCAT(first_name, ' ', last_name))
+FROM actor
+ORDER BY CONCAT (first_name, ' ', last_name) DESC
+
+/* OR use this to shorten headings */
+SELECT CONCAT(first_name, ' ', last_name) as name,
+LENGTH(CONCAT(first_name, ' ', last_name)) as len
+FROM actor
+ORDER BY len DESC
+
+SELECT CONCAT(first_name, ' ', last_name) as name, LENGTH(CONCAT(first_name, ' ', last_name)) as len
+FROM actor
+WHERE LENGTH(CONCAT(first_name, ' ', last_name))>17
+ORDER BY len DESC
+
+--
+/* Date functions */
+SELECT *
+FROM address
+WHERE last_update > '2006-02-15' because not including time
+Get exact match:
+SELECT *
+FROM address
+WHERE last_update = '2006-02-15 09:45:30'
+
+SELECT *
+FROM address
+WHERE EXTRACT(YEAR FROM(last_update)) = 2006
+
+SELECT *
+FROM address
+WHERE DATE(last_update) = '2006-02-15'
+
+Change format
+SELECT TO_CHAR(last_update, 'MM-DD-YYYY')
+FROM address
+
+--
+
+/* Grouping results */
+GROUP BY with count
+SELECT district, count(*) as ct
+FROM address
+GROUP BY district
+ORDER BY ct DESC
+
+SELECT district, count(*) as ct
+FROM address
+WHERE address_id<10
+GROUP BY district
+ORDER BY ct DESC
+
+/* Filter grouped results with HAVING */
+SELECT district, count(*)
+FROM address
+WHERE district LIKE '%B%'
+GROUP BY district
+HAVING count(*) > 8
+ORDER BY count(*) DESC
+
+SELECT MIN(rental_duration), MAX(rental_duration), AVG(rental_duration)
+FROM film
+
+SELECT rating, SUM(rental_duration)
+FROM film
+GROUP BY rating
+
+SELECT AVG(EXTRACT(YEAR FROM last_update))
+FROM actor
+
+/* De duplicate with SELECT DISTINCT */
+SELECT DISTINCT customer_id, inventory_id
+FROM rental
+
+/* This shows 4 fewer */
+SELECT DISTINCT CONCAT(customer_id, inventory_id)
+FROM rental
+
+/* Investigate: */
+SELECT CONCAT(customer_id, inventory_id) AS conc, count(*) as ct
+FROM rental
+GROUP BY conc
+ORDER BY ct DESC
+
+/* This showed that concatenations for 4 were not registering or separated properly, so added underscore: */
+SELECT CONCAT(customer_id, '_', inventory_id) AS conc, count(*) as ct
+FROM rental
+GROUP BY conc
+ORDER BY ct DESC
+
+/* Merge rows with GROUP BY */
+SELECT district, GROUP_CONCAT(phone)
+FROM address
+GROUP BY district
+
+--
+
+/* Merge data from multiple tables */
+SELECT *
+FROM payment
+LIMIT 25
+
+/* Merge data across tables with join */
+SELECT *
+FROM customer
+JOIN address
+ON customer.address_id = address.address_id
+
+/* OR this way: */
+SELECT *
+FROM customer c
+JOIN address a
+ON c.address_id = a.address_id
+
+SELECT *
+FROM customer AS c JOIN address AS a
+ON c.address_id = a.address_id
+WHERE district = 'Buenos Aires'
+
+/* Use UNION to combine rows */
+/* Unions work vertically and don't care about matching records. */
+
+SELECT 'actor' as tbl, DATE(last_update)
+FROM actor
+UNION ALL
+SELECT 'address' as tbl, DATE(last_update)
+FROM address
+
+/* Runs select distinct by default*/
+SELECT 'actor' as tbl, DATE(last_update)
+FROM actor
+UNION
+SELECT 'address' as tbl, DATE(last_update)
+FROM address
+
+SELECT 'actor' as tbl, DATE(last_update)
+FROM actor
+UNION ALL
+SELECT 'address' as tbl, DATE(last_update)
+FROM address 
+WHERE address_id <5
+
+
+/* Merge using IN */
+/* where cust id matches any of customer id in other select*/
+SELECT *
+FROM rental 
+WHERE customer_id IN(
+SELECT customer_id
+FROM customer
+WHERE first_name = 'Mary')
+
+/* Select from selection wtih subqueries */
+SELECT f.first_name FROM
+(SELECT first_name FROM actor) as f
+
+/* OR SIMILAR: */
+SELECT f.fn FROM
+(SELECT first_name as fn FROM actor) as f
+
+/* VIEWs in pgadmin can be taken from properties. */
+SELECT a.actor_id,
+    a.first_name,
+    a.last_name,
+    group_concat(DISTINCT (c.name::text || ': '::text) || (( SELECT group_concat(f.title::text) AS group_concat
+           FROM film f
+             JOIN film_category fc_1 ON f.film_id = fc_1.film_id
+             JOIN film_actor fa_1 ON f.film_id = fa_1.film_id
+          WHERE fc_1.category_id = c.category_id AND fa_1.actor_id = a.actor_id
+          GROUP BY fa_1.actor_id))) AS film_info
+   FROM actor a
+     LEFT JOIN film_actor fa ON a.actor_id = fa.actor_id
+     LEFT JOIN film_category fc ON fa.film_id = fc.film_id
+     LEFT JOIN category c ON fc.category_id = c.category_id
+  GROUP BY a.actor_id, a.first_name, a.last_name;
+
+
+CREATE VIEW view_name AS SELECT group_concat(f.title::text) AS group_concat
+           FROM film f
+             JOIN film_category fc_1 ON f.film_id = fc_1.film_id
+             JOIN film_actor fa_1 ON f.film_id = fa_1.film_id
