@@ -418,4 +418,4 @@ SELECT film_not_in_stock(39,2)
 
 SELECT * from inventory where film_id=39 AND store_id=2
 
-SELECT * FROM rental WHERE inventory_id IN (177, 178, 179, 180) /* returns 12 with 1 null in rtrun date, and that's the one that is still out*/ 
+SELECT * FROM rental WHERE inventory_id IN (177, 178, 179, 180) /* returns 12 with 1 null in rtrun date, and that's the one that is still out. Tells us how the first one came back with 177*/ 
